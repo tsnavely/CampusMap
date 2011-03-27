@@ -6,6 +6,7 @@ import android.app.Activity;
 import android.database.SQLException;
 import android.graphics.Matrix;
 import android.graphics.PointF;
+import android.graphics.RectF;
 import android.os.Bundle;
 import android.util.FloatMath;
 import android.view.MotionEvent;
@@ -31,10 +32,19 @@ public class Map extends Activity implements OnTouchListener{
 	PointF mid = new PointF();
 	float oldDist = 1f;
 
+	// Limit zoomable/pannable image
+	private ImageView view;
+	private float[] matrixValues = new float[9];
+	private float maxZoom;
+	private float minZoom;
+	private float height;
+	private float width;
+	private RectF viewRect;
+
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-
+		
 		//Upload database if not already uploaded
 		DatabaseHelper myDBHelper = new DatabaseHelper(this);
 		try{
@@ -42,24 +52,40 @@ public class Map extends Activity implements OnTouchListener{
 		}catch (IOException ioe){
 			throw new Error("Unable to create database");
 		}
-
 		try{
 			myDBHelper.openDatabase();
 		}catch (SQLException sqle){
 			throw sqle;
 		}
-
+		
 		setContentView(R.layout.main);
-		ImageView view = (ImageView)findViewById(R.id.imageView);
+		view = (ImageView) findViewById(R.id.imageView);
 		view.setOnTouchListener(this);
 	}
 
 	@Override
-	public boolean onTouch(View v, MotionEvent event){
-		ImageView view = (ImageView)v;
+	public void onWindowFocusChanged(boolean hasFocus) {
+		super.onWindowFocusChanged(hasFocus);
+		if(hasFocus){
+			init();
+		}
+	}
 
-		//Handle touch events
-		switch(event.getAction() & MotionEvent.ACTION_MASK){
+	private void init() {
+		maxZoom = 4;
+		minZoom = 0.25f;
+		height = view.getDrawable().getIntrinsicHeight();
+		width = view.getDrawable().getIntrinsicWidth();
+		viewRect = new RectF(0, 0, view.getWidth(), view.getHeight());
+	}
+
+	@Override
+	public boolean onTouch(View v, MotionEvent rawEvent) {
+		WrapMotionEvent event = WrapMotionEvent.wrap(rawEvent);
+		ImageView view = (ImageView) v;
+
+		// Handle touch events here...
+		switch (event.getAction() & MotionEvent.ACTION_MASK) {
 		case MotionEvent.ACTION_DOWN:
 			savedMatrix.set(matrix);
 			start.set(event.getX(), event.getY());
@@ -80,13 +106,52 @@ public class Map extends Activity implements OnTouchListener{
 		case MotionEvent.ACTION_MOVE:
 			if (mode == DRAG) {
 				matrix.set(savedMatrix);
-				matrix.postTranslate(event.getX() - start.x, event.getY() - start.y);
-			}
-			else if (mode == ZOOM) {
+
+				// limit pan
+				matrix.getValues(matrixValues);
+				float currentY = matrixValues[Matrix.MTRANS_Y];
+				float currentX = matrixValues[Matrix.MTRANS_X];
+				float currentScale = matrixValues[Matrix.MSCALE_X];
+				float currentHeight = height * currentScale;
+				float currentWidth = width * currentScale;
+				float dx = event.getX() - start.x;
+				float dy = event.getY() - start.y;
+				float newX = currentX+dx;
+				float newY = currentY+dy; 
+
+				RectF drawingRect = new RectF(newX, newY, newX+currentWidth, newY+currentHeight);
+				float diffUp = Math.min(viewRect.bottom-drawingRect.bottom, viewRect.top-drawingRect.top);
+				float diffDown = Math.max(viewRect.bottom-drawingRect.bottom, viewRect.top-drawingRect.top);
+				float diffLeft = Math.min(viewRect.left-drawingRect.left, viewRect.right-drawingRect.right);
+				float diffRight = Math.max(viewRect.left-drawingRect.left, viewRect.right-drawingRect.right);
+				if(diffUp > 0 ){
+					dy +=diffUp; 
+				}
+				if(diffDown < 0){
+					dy +=diffDown;
+				} 
+				if( diffLeft> 0){ 
+					dx += diffLeft;
+				}
+				if(diffRight < 0){
+					dx += diffRight;
+				}
+				matrix.postTranslate(dx, dy);
+			} else if (mode == ZOOM) {
 				float newDist = spacing(event);
 				if (newDist > 10f) {
 					matrix.set(savedMatrix);
 					float scale = newDist / oldDist;
+
+					matrix.getValues(matrixValues);
+					float currentScale = matrixValues[Matrix.MSCALE_X];
+
+					// limit zoom
+					if (scale * currentScale > maxZoom) {
+						scale = maxZoom / currentScale;
+					} else if (scale * currentScale < minZoom) {
+						scale = minZoom / currentScale;
+					}
 					matrix.postScale(scale, scale, mid.x, mid.y);
 				}
 			}
@@ -98,14 +163,14 @@ public class Map extends Activity implements OnTouchListener{
 	}
 
 	/** Determine the space between the first two fingers */
-	private float spacing(MotionEvent event) {
+	private float spacing(WrapMotionEvent event) {
 		float x = event.getX(0) - event.getX(1);
 		float y = event.getY(0) - event.getY(1);
 		return FloatMath.sqrt(x * x + y * y);
 	}
 
 	/** Calculate the mid point of the first two fingers */
-	private void midPoint(PointF point, MotionEvent event) {
+	private void midPoint(PointF point, WrapMotionEvent event) {
 		float x = event.getX(0) + event.getX(1);
 		float y = event.getY(0) + event.getY(1);
 		point.set(x / 2, y / 2);
