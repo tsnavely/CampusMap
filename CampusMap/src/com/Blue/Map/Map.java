@@ -9,6 +9,7 @@ import android.graphics.PointF;
 import android.graphics.RectF;
 import android.os.Bundle;
 import android.util.FloatMath;
+import android.view.Display;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnTouchListener;
@@ -44,8 +45,9 @@ public class Map extends Activity implements OnTouchListener{
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		
-		//Upload database if not already uploaded
+
+		//Upload database from assets folder 
+		//if not already uploaded to '/data/data/com.Blue.Map/databases/'
 		DatabaseHelper myDBHelper = new DatabaseHelper(this);
 		try{
 			myDBHelper.createDatabase();
@@ -57,7 +59,7 @@ public class Map extends Activity implements OnTouchListener{
 		}catch (SQLException sqle){
 			throw sqle;
 		}
-		
+
 		setContentView(R.layout.main);
 		view = (ImageView) findViewById(R.id.imageView);
 		view.setOnTouchListener(this);
@@ -72,10 +74,14 @@ public class Map extends Activity implements OnTouchListener{
 	}
 
 	private void init() {
-		maxZoom = 4;
-		minZoom = 0.25f;
+		//Get dimensions of display
+		Display screen = getWindowManager().getDefaultDisplay();
+		int displayHeight = screen.getHeight();
+		
 		height = view.getDrawable().getIntrinsicHeight();
 		width = view.getDrawable().getIntrinsicWidth();
+		maxZoom = 4;
+		minZoom = displayHeight / height;
 		viewRect = new RectF(0, 0, view.getWidth(), view.getHeight());
 	}
 
@@ -100,6 +106,8 @@ public class Map extends Activity implements OnTouchListener{
 			}
 			break;
 		case MotionEvent.ACTION_UP:
+			mode = NONE;
+			break;
 		case MotionEvent.ACTION_POINTER_UP:
 			mode = NONE;
 			break;
@@ -111,7 +119,7 @@ public class Map extends Activity implements OnTouchListener{
 				matrix.getValues(matrixValues);
 				float currentY = matrixValues[Matrix.MTRANS_Y];
 				float currentX = matrixValues[Matrix.MTRANS_X];
-				float currentScale = matrixValues[Matrix.MSCALE_X];
+				float currentScale = matrixValues[Matrix.MSCALE_Y];
 				float currentHeight = height * currentScale;
 				float currentWidth = width * currentScale;
 				float dx = event.getX() - start.x;
@@ -144,7 +152,7 @@ public class Map extends Activity implements OnTouchListener{
 					float scale = newDist / oldDist;
 
 					matrix.getValues(matrixValues);
-					float currentScale = matrixValues[Matrix.MSCALE_X];
+					float currentScale = matrixValues[Matrix.MSCALE_Y];
 
 					// limit zoom
 					if (scale * currentScale > maxZoom) {
@@ -153,7 +161,7 @@ public class Map extends Activity implements OnTouchListener{
 						scale = minZoom / currentScale;
 					}
 					matrix.postScale(scale, scale, mid.x, mid.y);
-				}
+				} 
 			}
 			break;
 		}
