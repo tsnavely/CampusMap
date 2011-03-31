@@ -2,4 +2,5 @@
 <resources>
     <string name="hello">Hello World, Map!</string>
     <string name="app_name">CampusMap</string>
+    <string name="searchHint">Search</string>
 </resources>
