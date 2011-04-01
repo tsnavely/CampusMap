@@ -27,11 +27,21 @@ public class DatabaseHelper extends SQLiteOpenHelper{
 		myContext = context;
 	}
 	
+	
+	//-------------------------------------------------------//
+	//The following 3 methods copy the database file from the//
+	//        assets folder to the database directory        //
+	//        of the application if it doesn't exist.        //
+	//-------------------------------------------------------//
+	
+	
 	//create the database
 	public void createDatabase() throws IOException{
 		boolean dbExist = checkDatabase();
 		
-		if(dbExist){}
+		if(dbExist){
+			//do nothing
+		}
 		else{
 			getReadableDatabase();
 		}
@@ -99,9 +109,10 @@ public class DatabaseHelper extends SQLiteOpenHelper{
 	public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion){}
 	
 	
+	//-------------------------------------------------//
+	//database queries that return values to be handled//
+	//-------------------------------------------------//
 	
-	
-	//database queries that return a cursor to be handled
 	
 	//get row of a distinct building
 	public Cursor getGPS(String buildingName){

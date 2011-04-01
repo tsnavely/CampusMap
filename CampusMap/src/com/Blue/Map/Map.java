@@ -1,7 +1,6 @@
 package com.Blue.Map;
 
 import java.io.IOException;
-
 import android.app.Activity;
 import android.database.Cursor;
 import android.database.SQLException;
@@ -24,10 +23,6 @@ import android.widget.Spinner;
 import android.widget.Toast;
 
 public class Map extends Activity implements OnTouchListener{
-	AutoCompleteTextView searchAutoCompleteTextView;
-	Spinner mainSpinner;
-	Cursor c;
-
 	// These matrices will be used to move and zoom image
 	Matrix matrix = new Matrix();
 	Matrix savedMatrix = new Matrix();
@@ -48,19 +43,24 @@ public class Map extends Activity implements OnTouchListener{
 	private float[] matrixValues = new float[9];
 	private float maxZoom;
 	private float minZoom;
-	private float height;
-	private float width;
+	private float mapHeight;
+	private float mapWidth;
+	private float screenHeight;
+	private float screenWidth;
 	private RectF viewRect;
 	
 	DatabaseHelper myDBHelper;
-	double latValue;
-	double lonValue;
 
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-
+		setContentView(R.layout.main);
+		view = (ImageView) findViewById(R.id.imageView);
+		
+		//turn on onTouchListener to map
+		view.setOnTouchListener(this);
+		
 		//Upload database from assets folder 
 		//if not already uploaded to '/data/data/com.Blue.Map/databases/'
 		myDBHelper = new DatabaseHelper(this);
@@ -75,29 +75,39 @@ public class Map extends Activity implements OnTouchListener{
 			throw sqle;
 		}
 
-		setContentView(R.layout.main);
-		view = (ImageView) findViewById(R.id.imageView);
-		view.setOnTouchListener(this);
+		
+		//define user interface widgets
+		AutoCompleteTextView searchAutoCompleteTextView = (AutoCompleteTextView) findViewById(R.id.searchAutoCompleteTextView);
+		Spinner mainSpinner = (Spinner) findViewById(R.id.mainSpinner);
 
-		searchAutoCompleteTextView = (AutoCompleteTextView) findViewById(R.id.searchAutoCompleteTextView);
-		mainSpinner = (Spinner) findViewById(R.id.mainSpinner);
-
-		ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
-				android.R.layout.simple_spinner_item);
+		
+		//set-up adapters for widgets to display
+		ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item);
 		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 		mainSpinner.setAdapter(adapter);
-		mainSpinner.setPrompt("Select Building");
 		searchAutoCompleteTextView.setAdapter(adapter);
 
+		//display prompt title
+		mainSpinner.setPrompt("Select Building");
+		//query for all buildings to be displayed in spinner
 		myDBHelper.getAllBuildings(adapter);
 
+		//------------------------------------------------//
+		//The following overriding methods return latitude//
+		//     and longitude value to be displayed in     //
+		//      a pop-up when selected from spinner.      //
+		//------------------------------------------------//
+		
+		//this only works properly when all buildings are displayed in the spinner
+		//the solution to the issue is described here:
+		//http://www.outofwhatbox.com/blog/2010/11/android-autocompletetextview-sqlite-and-dependent-fields/
 		mainSpinner.setOnItemSelectedListener(new OnItemSelectedListener(){
 
 			@Override
 			public void onItemSelected(AdapterView<?> parentView, View selectedItemView, int position, long id) {
-				c = myDBHelper.getGPSFromSpinner(id);
-				latValue = c.getDouble(1);
-				lonValue = c.getDouble(2);
+				Cursor c = myDBHelper.getGPSFromSpinner(id);
+				double latValue = c.getDouble(1);
+				double lonValue = c.getDouble(2);
 				Toast toast = Toast.makeText(getApplicationContext(), "LAT: "+latValue+" LON: "+lonValue, Toast.LENGTH_LONG);
 				toast.setGravity(Gravity.BOTTOM, 0, 0);
 				toast.show();
@@ -111,75 +121,103 @@ public class Map extends Activity implements OnTouchListener{
 		});
 	}
 
+	//update 
 	@Override
-	public void onWindowFocusChanged(boolean hasFocus) {
-		super.onWindowFocusChanged(hasFocus);
-		if(hasFocus){
-			init();
-		}
+	public void onWindowFocusChanged(boolean hasFocus){
+			super.onWindowFocusChanged(hasFocus);
+			if(hasFocus){
+				//get map dimesions
+				mapHeight = view.getDrawable().getIntrinsicHeight();
+				mapWidth = view.getDrawable().getIntrinsicWidth();
+				//get screen dimensions
+				screenHeight = view.getHeight();
+				screenWidth = view.getWidth();
+				//set zoom levels
+				maxZoom = 4;
+				getMinZoom();
+				//set rectangle to screen perimeter
+				viewRect = new RectF(0, 0, screenWidth, screenHeight);
+			}
 	}
-
-	private void init() {
-		//Get dimensions of display
-		Display screen = getWindowManager().getDefaultDisplay();
-		
-		//int displayHeight = screen.getHeight();
-		int displayWidth = screen.getWidth();
-
-		height = view.getDrawable().getIntrinsicHeight();
-		width = view.getDrawable().getIntrinsicWidth();
-		maxZoom = 4;
-		minZoom = displayWidth / width;
-		viewRect = new RectF(0, 0, view.getWidth(), view.getHeight());
-	}
-
+	
+	
+	//-------------------//
+	//Define touch events//
+	//-------------------//
+	
+	
 	@Override
 	public boolean onTouch(View v, MotionEvent rawEvent) {
 		WrapMotionEvent event = WrapMotionEvent.wrap(rawEvent);
 		ImageView view = (ImageView) v;
-
-		// Handle touch events here...
+		
+		// Handle touch events
 		switch (event.getAction() & MotionEvent.ACTION_MASK) {
+		
+		//One finger touch
 		case MotionEvent.ACTION_DOWN:
+			//reset matrix
 			savedMatrix.set(matrix);
+			//get location of touch
 			start.set(event.getX(), event.getY());
 			mode = DRAG;
 			break;
+			
+		//Two finger touch
 		case MotionEvent.ACTION_POINTER_DOWN:
 			oldDist = spacing(event);
+			//make sure that there are actually two fingers because it's
+			//possible to to have a misread from MotionEvent
 			if (oldDist > 10f) {
+				//reset matrix
 				savedMatrix.set(matrix);
+				//get midpoint between fingers on touch-down
 				midPoint(mid, event);
 				mode = ZOOM;
 			}
 			break;
+			
+		//One finger lifted
 		case MotionEvent.ACTION_UP:
 			mode = NONE;
 			break;
+			
+		//Two fingers lifted
 		case MotionEvent.ACTION_POINTER_UP:
 			mode = NONE;
 			break;
+			
+		//One or two fingers moved
 		case MotionEvent.ACTION_MOVE:
+			//for drag event
 			if (mode == DRAG) {
 				matrix.set(savedMatrix);
 
-				// limit pan
+				//------------//
+				//limit scroll//
+				//------------//
+				
 				matrix.getValues(matrixValues);
 				float currentY = matrixValues[Matrix.MTRANS_Y];
 				float currentX = matrixValues[Matrix.MTRANS_X];
 				float currentScale = matrixValues[Matrix.MSCALE_Y];
-				float currentHeight = height * currentScale;
-				float currentWidth = width * currentScale;
+				float currentHeight = mapHeight * currentScale;
+				float currentWidth = mapWidth * currentScale;
+				//calculate change in x and y values
 				float dx = event.getX() - start.x;
 				float dy = event.getY() - start.y;
+				//get new placement
 				float newX = currentX+dx;
 				float newY = currentY+dy; 
 
+				//rectangle for new position
 				RectF drawingRect = new RectF(newX, newY, newX+currentWidth, newY+currentHeight);
+				//calculate distance that drawingRect is past map limits
 				float diffUp = Math.min(viewRect.bottom-drawingRect.bottom, viewRect.top-drawingRect.top);
 				float diffDown = Math.max(viewRect.bottom-drawingRect.bottom, viewRect.top-drawingRect.top);
 				float diffLeft = Math.min(viewRect.left-drawingRect.left, viewRect.right-drawingRect.right);
 				float diffRight = Math.max(viewRect.left-drawingRect.left, viewRect.right-drawingRect.right);
+				//push map back into view
 				if(diffUp > 0 ){
 					dy +=diffUp; 
 				}
@@ -192,22 +230,34 @@ public class Map extends Activity implements OnTouchListener{
 				if(diffRight < 0){
 					dx += diffRight;
 				}
+				//set matrix for map to be scrolled
 				matrix.postTranslate(dx, dy);
+				
+			//for zoom event
 			} else if (mode == ZOOM) {
+				//calculate new distance between fingers
 				float newDist = spacing(event);
+				//make sure that there are actually two fingers because it's
+				//possible to to have a misread from MotionEvent
 				if (newDist > 10f) {
+					//reset matrix
 					matrix.set(savedMatrix);
+					//calculate scale to be changed
 					float scale = newDist / oldDist;
 
 					matrix.getValues(matrixValues);
 					float currentScale = matrixValues[Matrix.MSCALE_Y];
 
-					// limit zoom
+					//----------//
+					//limit zoom//
+					//----------//
+					
 					if (scale * currentScale > maxZoom) {
 						scale = maxZoom / currentScale;
 					} else if (scale * currentScale < minZoom) {
 						scale = minZoom / currentScale;
 					}
+					//set matrix to new scale, and center map to midpoint of fingers
 					matrix.postScale(scale, scale, mid.x, mid.y);
 				} 
 			}
@@ -218,17 +268,31 @@ public class Map extends Activity implements OnTouchListener{
 		return true; // indicate event was handled
 	}
 
-	/** Determine the space between the first two fingers */
+	//Determine the space between the two fingers
 	private float spacing(WrapMotionEvent event) {
 		float x = event.getX(0) - event.getX(1);
 		float y = event.getY(0) - event.getY(1);
 		return FloatMath.sqrt(x * x + y * y);
 	}
 
-	/** Calculate the mid point of the first two fingers */
+	//Calculate the mid point of the first two fingers
 	private void midPoint(PointF point, WrapMotionEvent event) {
 		float x = event.getX(0) + event.getX(1);
 		float y = event.getY(0) + event.getY(1);
 		point.set(x / 2, y / 2);
+	}
+	
+	//return minimum zoom level to constrain boundaries
+	private void getMinZoom(){
+		//get screen orientation
+		Display getOrientation = getWindowManager().getDefaultDisplay();
+		int orientation = getOrientation.getOrientation();
+		
+		if(orientation == 1){//set zoom if portrait
+			minZoom = screenHeight / mapHeight;
+		}
+		else if (orientation == 2){//set zoom if landscape
+			minZoom = screenWidth / mapWidth;
+		}
 	}
 }
