@@ -134,7 +134,7 @@ public class Map extends Activity implements OnTouchListener{
 				screenWidth = view.getWidth();
 				//set zoom levels
 				maxZoom = 4;
-				getMinZoom();
+				minZoom = getMinZoom();
 				//set rectangle to screen perimeter
 				viewRect = new RectF(0, 0, screenWidth, screenHeight);
 			}
@@ -283,16 +283,16 @@ public class Map extends Activity implements OnTouchListener{
 	}
 	
 	//return minimum zoom level to constrain boundaries
-	private void getMinZoom(){
+	private float getMinZoom(){
 		//get screen orientation
 		Display getOrientation = getWindowManager().getDefaultDisplay();
 		int orientation = getOrientation.getOrientation();
 		
 		if(orientation == 1){//set zoom if portrait
-			minZoom = screenHeight / mapHeight;
+			return screenHeight / mapHeight;
 		}
-		else if (orientation == 2){//set zoom if landscape
-			minZoom = screenWidth / mapWidth;
+		else{//set zoom if landscape
+			return screenWidth / mapWidth;
 		}
 	}
 }
