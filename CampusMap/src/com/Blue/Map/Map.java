@@ -13,16 +13,21 @@ import android.view.Display;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.View.OnTouchListener;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Spinner;
 import android.widget.Toast;
 
-public class Map extends Activity implements OnTouchListener{
+public class Map extends Activity implements OnTouchListener, OnClickListener{
+	Button clickButton;
+	
+	
 	// These matrices will be used to move and zoom image
 	Matrix matrix = new Matrix();
 	Matrix savedMatrix = new Matrix();
@@ -38,7 +43,7 @@ public class Map extends Activity implements OnTouchListener{
 	PointF mid = new PointF();
 	float oldDist = 1f;
 
-	// Limit zoomable/pannable image
+	// Map and screen values
 	private ImageView view;
 	private float[] matrixValues = new float[9];
 	private float maxZoom;
@@ -49,6 +54,13 @@ public class Map extends Activity implements OnTouchListener{
 	private float screenWidth;
 	private RectF viewRect;
 	
+	// Values for grid
+	private float currentX;
+	private float currentY;
+	private float XValueShowing;
+	private float YValueShowing;
+	private float currentScale;
+	
 	DatabaseHelper myDBHelper;
 
 	/** Called when the activity is first created. */
@@ -57,6 +69,13 @@ public class Map extends Activity implements OnTouchListener{
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
 		view = (ImageView) findViewById(R.id.imageView);
+		
+		
+		clickButton = (Button)findViewById(R.id.button1);
+		clickButton.setOnClickListener((OnClickListener) this);
+		
+		//set up initial grid
+		gridValues();
 		
 		//turn on onTouchListener to map
 		view.setOnTouchListener(this);
@@ -150,6 +169,7 @@ public class Map extends Activity implements OnTouchListener{
 	public boolean onTouch(View v, MotionEvent rawEvent) {
 		WrapMotionEvent event = WrapMotionEvent.wrap(rawEvent);
 		ImageView view = (ImageView) v;
+		matrix.getValues(matrixValues);
 		
 		// Handle touch events
 		switch (event.getAction() & MotionEvent.ACTION_MASK) {
@@ -197,10 +217,7 @@ public class Map extends Activity implements OnTouchListener{
 				//limit scroll//
 				//------------//
 				
-				matrix.getValues(matrixValues);
-				float currentY = matrixValues[Matrix.MTRANS_Y];
-				float currentX = matrixValues[Matrix.MTRANS_X];
-				float currentScale = matrixValues[Matrix.MSCALE_Y];
+				gridValues();
 				float currentHeight = mapHeight * currentScale;
 				float currentWidth = mapWidth * currentScale;
 				//calculate change in x and y values
@@ -293,6 +310,32 @@ public class Map extends Activity implements OnTouchListener{
 		}
 		else{//set zoom if landscape
 			return screenWidth / mapWidth;
+		}
+	}
+	
+	//get values for grid
+	private void gridValues(){
+		view.setImageMatrix(matrix);
+		//top left coordinate
+		currentY = matrixValues[Matrix.MTRANS_Y];
+		currentX = matrixValues[Matrix.MTRANS_X];
+		
+		currentScale = matrixValues[Matrix.MSCALE_Y];
+		
+		YValueShowing = screenHeight/currentScale;
+		XValueShowing = screenWidth/currentScale;
+	}
+	
+	@Override
+	public void onClick(View src){
+		switch(src.getId()){
+		case R.id.button1:
+			Toast toast = Toast.makeText(getApplicationContext(), "("+currentX+","+currentY+")", Toast.LENGTH_SHORT);
+			Toast toast2 = Toast.makeText(getApplicationContext(), XValueShowing+","+YValueShowing, Toast.LENGTH_SHORT);
+			toast.setGravity(Gravity.BOTTOM, 0, 0);
+			toast2.setGravity(Gravity.BOTTOM,100,0);
+			toast.show();
+			toast2.show();
 		}
 	}
 }
