@@ -66,15 +66,6 @@ public class Map extends Activity implements OnTouchListener{
 		view = (ImageView) findViewById(R.id.imageView);
 		//turn on onTouchListener to map
 		view.setOnTouchListener(this);
-
-		//view.setImageMatrix(matrix);
-		setGridValues();
-		Toast toast = Toast.makeText(getApplicationContext(), "("+currentX+","+currentY+")", Toast.LENGTH_SHORT);
-		Toast toast2 = Toast.makeText(getApplicationContext(), displayPixelsX+","+displayPixelsY, Toast.LENGTH_SHORT);
-		toast.setGravity(Gravity.BOTTOM, 0, 0);
-		toast2.setGravity(Gravity.BOTTOM,100,0);
-		toast.show();
-		toast2.show();
 		
 		//Upload database from assets folder 
 		//if not already uploaded to '/data/data/com.Blue.Map/databases/'
@@ -148,7 +139,15 @@ public class Map extends Activity implements OnTouchListener{
 			maxZoom = 4;
 			minZoom = getMinZoom();
 			//set rectangle to screen perimeter
-			viewRect = new RectF(0, 0, view.getWidth(), view.getHeight());			
+			viewRect = new RectF(0, 0, view.getWidth(), view.getHeight());
+			
+			setGridValues();
+			Toast toast = Toast.makeText(getApplicationContext(), "("+currentX+","+currentY+")", Toast.LENGTH_SHORT);
+			Toast toast2 = Toast.makeText(getApplicationContext(), view.getWidth()+","+displayPixelsY, Toast.LENGTH_SHORT);
+			toast.setGravity(Gravity.BOTTOM, 0, 0);
+			toast2.setGravity(Gravity.BOTTOM,100,0);
+			toast.show();
+			toast2.show();
 		}
 	}
 
