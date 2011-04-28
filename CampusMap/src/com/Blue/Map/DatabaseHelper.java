@@ -101,7 +101,7 @@ public class DatabaseHelper extends SQLiteOpenHelper{
 		}
 	}
 	
-	//these methods must be overriden, however they will not be used
+	//these methods must be overridden, however they will not be used
 	@Override
 	public void onCreate(SQLiteDatabase db){}
 	
@@ -124,8 +124,8 @@ public class DatabaseHelper extends SQLiteOpenHelper{
 	}
 	
 	//get value from spinner, using the row id
-	public Cursor getGPSFromSpinner(Long id){
-		Cursor myCursor = myDatabase.query(false, "Buildings", new String[] {"BuildingName", "LAT", "LON"}, "RowID='"+id+"'", null, null, null, null, null);
+	public Cursor getGPSFromSpinner(String BuildingName){
+		Cursor myCursor = myDatabase.rawQuery("select LAT, LON from Buildings WHERE BuildingName = ?",new String[] {BuildingName});
 		if(myCursor != null){
 			myCursor.moveToFirst();
 		}

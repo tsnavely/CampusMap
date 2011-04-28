@@ -1,18 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="fill_parent"
-    android:layout_height="fill_parent">
-    
-    <ImageView android:id="@+id/imageView"
-    	android:layout_width="fill_parent"
-    	android:layout_height="fill_parent" 
-    	android:src="@drawable/largecampusmap" android:scaleType="matrix">
-    </ImageView>
-    <LinearLayout android:id="@+id/linearLayout1" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_width="fill_parent">
-        <Spinner android:layout_height="wrap_content" android:id="@+id/mainSpinner" android:layout_weight="1" android:layout_width="150sp"></Spinner>
-        <AutoCompleteTextView android:layout_height="wrap_content" android:layout_width="wrap_content" android:layout_weight="1" android:id="@+id/searchAutoCompleteTextView" android:hint="@string/searchHint"></AutoCompleteTextView>
-        <ImageView android:id="@+id/imageView1" android:src="@drawable/searchicon" android:scaleType="fitXY" android:layout_gravity="center" android:layout_height="fill_parent" android:layout_width="50sp"></ImageView>
-    </LinearLayout>
-    
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_width="fill_parent" android:layout_height="fill_parent">
+
+	<ImageView android:id="@+id/imageView" android:layout_width="fill_parent"
+		android:layout_height="fill_parent" android:src="@drawable/largecampusmap"
+		android:scaleType="matrix">
+	</ImageView>
+	<ImageView android:id="@+id/BuildingMarker"
+		android:visibility="invisible" android:scaleType="matrix" android:src="@drawable/marker"
+		android:layout_height="fill_parent" android:layout_width="fill_parent"></ImageView>
+	<ImageView android:id="@+id/gpsMarker" android:visibility="invisible"
+		android:src="@drawable/gpsmarker" android:scaleType="matrix"
+		android:layout_height="fill_parent" android:layout_width="fill_parent"></ImageView>
+	<LinearLayout android:id="@+id/linearLayout1"
+		android:layout_height="wrap_content" android:orientation="horizontal"
+		android:layout_width="fill_parent">
+		<Spinner android:layout_height="wrap_content"
+			android:layout_weight="1" android:layout_width="150sp" android:id="@+id/mainSpinner"></Spinner>
+		<AutoCompleteTextView android:layout_weight="1"
+			android:id="@+id/searchAutoCompleteTextView" android:hint="@string/searchHint"
+			android:imeOptions="actionDone" android:layout_width="100dip"
+			android:layout_height="fill_parent" android:completionThreshold="1"></AutoCompleteTextView>
+		<ImageButton android:layout_width="50sp"
+			android:layout_height="fill_parent" android:background="@drawable/android_button"
+			android:id="@+id/imageButton"></ImageButton>
+	</LinearLayout>
+
 </FrameLayout>

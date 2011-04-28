@@ -3,4 +3,7 @@
     <string name="hello">Hello World, Map!</string>
     <string name="app_name">CampusMap</string>
     <string name="searchHint">Search</string>
+    <string name="gps">GPS</string>
+    <string name="clear_map">Clear Map</string>
+    <string name="app_exit">Exit Application</string>
 </resources>
